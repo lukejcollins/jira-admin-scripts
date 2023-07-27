@@ -1,3 +1,5 @@
+![Jira](https://img.shields.io/badge/Jira-Service%20Management-blue?style=flat&logo=Jira&logoColor=blue) ![Jira](https://img.shields.io/badge/Jira-Software-blue?style=flat&logo=Jira%20Software&logoColor=blue) ![Python](https://img.shields.io/badge/Python-Scripts-blue?style=flat&logo=python&logoColor=yellow)
+
 # Jira Administration Scripts
 
 This repository contains a collection of Python scripts for various administrative tasks related to Jira. They interact with the Atlassian REST API to fetch and export data into CSV files or display it in the console. These scripts are multi-threaded where applicable, using Python ThreadPoolExecutor to fetch multiple pages of data concurrently from the API.
