@@ -9,16 +9,16 @@ import queue
 import requests
 
 # Check if the .env var exists and load the environment variables
-env_path = os.path.join(os.path.dirname(__file__), '.', '.env')
+env_path = os.path.join(os.path.dirname(__file__), ".", ".env")
 if os.path.exists(env_path):
     with open(env_path, encoding="utf-8") as file:
         for line in file:
-            key, value = line.strip().split('=', 1)
+            key, value = line.strip().split("=", 1)
             os.environ[key] = value
 
 # Set the necessary parameters
-ORG_ID = os.environ.get('ORG_ID')
-ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
+ORG_ID = os.environ.get("ORG_ID")
+ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
 BASE_URL = "https://api.atlassian.com/admin/v1/orgs"
 
 # Set the date range for the last 30 days
@@ -45,7 +45,7 @@ url = f"{BASE_URL}/{ORG_ID}/events"
 
 headers = {
     "Accept": "application/json",
-    "Authorization": f"Bearer {ACCESS_TOKEN}"
+    "Authorization": f"Bearer {ACCESS_TOKEN}",
 }
 
 # Initialize an empty list to store the audit log events
@@ -58,11 +58,20 @@ pages_queue.put(url)
 
 def fetch_page(page_url):
     """Function to fetch the audit log events for a given page URL"""
-    response = requests.get(page_url, headers=headers,
-                            params={"from": from_date, "to": to_date,
-                                    "action": ACTION}, timeout=30)
-    print(json.dumps(json.loads(response.text), sort_keys=True, indent=4,
-          separators=(",", ": ")))
+    response = requests.get(
+        page_url,
+        headers=headers,
+        params={"from": from_date, "to": to_date, "action": ACTION},
+        timeout=30,
+    )
+    print(
+        json.dumps(
+            json.loads(response.text),
+            sort_keys=True,
+            indent=4,
+            separators=(",", ": "),
+        )
+    )
     if response.status_code == 200:
         data = response.json()
         audit_logs.extend(data["data"])
@@ -78,17 +87,17 @@ def fetch_page(page_url):
 with ThreadPoolExecutor(max_workers=160) as executor:
     futures = {executor.submit(fetch_page, pages_queue.get())}
     while futures:
-        done, futures = (
-                concurrent.futures.wait(
-                    futures, return_when=concurrent.futures.FIRST_COMPLETED
-                    )
-                )
+        done, futures = concurrent.futures.wait(
+            futures, return_when=concurrent.futures.FIRST_COMPLETED
+        )
 
         for future in done:
             # Here you can add error handling on exception
             if future.exception() is not None:
-                print(f"Error retrieving audit log events: \
-                        {future.exception()}")
+                print(
+                    f"Error retrieving audit log events: \
+                        {future.exception()}"
+                )
             else:
                 print("Page processed successfully")
         while not pages_queue.empty():
@@ -99,8 +108,9 @@ OUTPUT_FILE = "audit_logs.csv"
 
 with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as csvfile:
     writer = csv.writer(csvfile)
-    writer.writerow(["Time", "Action", "Actor Name", "Actor Email",
-                     "Issue Key"])
+    writer.writerow(
+        ["Time", "Action", "Actor Name", "Actor Email", "Issue Key"]
+    )
 
     for log in audit_logs:
         attributes = log["attributes"]

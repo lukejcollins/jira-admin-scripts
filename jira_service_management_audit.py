@@ -7,17 +7,17 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 # Load environment variables from .env file
-env_path = os.path.join(os.path.dirname(__file__), '.', '.env')
+env_path = os.path.join(os.path.dirname(__file__), ".", ".env")
 if os.path.exists(env_path):
     with open(env_path, encoding="utf-8") as file:
         for line in file:
-            key, value = line.strip().split('=', 1)
+            key, value = line.strip().split("=", 1)
             os.environ[key] = value
 
 # Jira details
-JIRA_DOMAIN = os.environ.get('JIRA_DOMAIN')
-JIRA_EMAIL = os.environ.get('JIRA_EMAIL')
-JIRA_TOKEN = os.environ.get('JIRA_TOKEN')
+JIRA_DOMAIN = os.environ.get("JIRA_DOMAIN")
+JIRA_EMAIL = os.environ.get("JIRA_EMAIL")
+JIRA_TOKEN = os.environ.get("JIRA_TOKEN")
 
 # Define JQL query
 JQL_QUERY = "projectType = service_desk and updated >= -30d"
@@ -41,13 +41,15 @@ def get_issue_keys(start_at):
             f"&startAt={start_at * MAX_RESULTS}&maxResults={MAX_RESULTS}",
             headers=headers,
             auth=auth,
-            timeout=30
+            timeout=30,
         )
         response.raise_for_status()
         data = response.json()
-        print(f"Added {len(data['issues'])} issue keys, "
-              f"total is now {start_at * MAX_RESULTS + len(data['issues'])}")
-        return [issue['key'] for issue in data['issues']]
+        print(
+            f"Added {len(data['issues'])} issue keys, "
+            f"total is now {start_at * MAX_RESULTS + len(data['issues'])}"
+        )
+        return [issue["key"] for issue in data["issues"]]
     except requests.HTTPError as http_err:
         print(f"Failed to get issue keys: {http_err}")
         return []
@@ -61,10 +63,10 @@ def get_total_issues():
             f"{JIRA_DOMAIN}/rest/api/3/search?jql={JQL_QUERY}&maxResults=1",
             headers=headers,
             auth=auth,
-            timeout=30
+            timeout=30,
         )
         response.raise_for_status()
-        return response.json()['total']
+        return response.json()["total"]
     except requests.HTTPError as http_err:
         print(f"Failed to get total issues: {http_err}")
         return 0
@@ -79,21 +81,27 @@ def get_issue_changelog(issue_key):
             f"{JIRA_DOMAIN}/rest/api/3/issue/{issue_key}?expand=changelog",
             headers=headers,
             auth=auth,
-            timeout=30
+            timeout=30,
         )
         issue_response.raise_for_status()
 
         issue_data = issue_response.json()
-        changelog = issue_data.get('changelog', {})
+        changelog = issue_data.get("changelog", {})
 
-        if not changelog.get('histories'):
+        if not changelog.get("histories"):
             print(f"No changelog found for issue {issue_key}")
             return []
 
-        return [(history.get('author', {}).get('emailAddress',
-                                               'No email provided'),
-                 issue_key, history['created'])
-                for history in changelog['histories']]
+        return [
+            (
+                history.get("author", {}).get(
+                    "emailAddress", "No email provided"
+                ),
+                issue_key,
+                history["created"],
+            )
+            for history in changelog["histories"]
+        ]
     except requests.HTTPError as http_err:
         print(f"Failed to get changelog for issue {issue_key}: {http_err}")
         return []
@@ -105,19 +113,23 @@ def run():
     total_issues = get_total_issues()
     issue_keys = []
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-        futures = {executor.submit(get_issue_keys, start_at): start_at
-                   for start_at in range(math.ceil(total_issues /
-                                                   MAX_RESULTS))}
+        futures = {
+            executor.submit(get_issue_keys, start_at): start_at
+            for start_at in range(math.ceil(total_issues / MAX_RESULTS))
+        }
         for future in as_completed(futures):
             issue_keys += future.result()
     print(f"Collected {len(issue_keys)} issue keys.")
 
     print("Fetching changelogs...")
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-        futures = {executor.submit(get_issue_changelog, issue_key): issue_key
-                   for issue_key in issue_keys}
-        with open('changelog.csv', 'w', newline='',
-                  encoding='UTF-8') as csv_file:
+        futures = {
+            executor.submit(get_issue_changelog, issue_key): issue_key
+            for issue_key in issue_keys
+        }
+        with open(
+            "changelog.csv", "w", newline="", encoding="UTF-8"
+        ) as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(["Actor", "Issue", "Date"])
             for future in as_completed(futures):
