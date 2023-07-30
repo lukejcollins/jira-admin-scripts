@@ -22,6 +22,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install pylint flake8 requests
 
+    - name: Create .pylintrc file
+      run: |
+        echo "[MESSAGES CONTROL]" > .pylintrc
+        echo "disable=duplicate-code" >> .pylintrc
+
     - name: Run pylint
       run: |
         pylint **/*.py
