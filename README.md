@@ -1,4 +1,4 @@
-![Jira](https://img.shields.io/badge/Jira-Service%20Management-blue?style=flat&logo=Jira&logoColor=blue) ![Jira](https://img.shields.io/badge/Jira-Software-blue?style=flat&logo=Jira%20Software&logoColor=blue) ![Python](https://img.shields.io/badge/Python-Scripts-blue?style=flat&logo=python&logoColor=yellow)
+![Jira](https://img.shields.io/badge/Jira-Service%20Management-blue?style=flat&logo=Jira&logoColor=blue) ![Jira](https://img.shields.io/badge/Jira-Software-blue?style=flat&logo=Jira%20Software&logoColor=blue) ![Python](https://img.shields.io/badge/Python-Scripts-blue?style=flat&logo=python&logoColor=yellow) ![Python Lint](https://github.com/lukejcollins/jira-admin-scripts/actions/workflows/linting.yaml/badge.svg)
 
 # Jira Administration Scripts
 
