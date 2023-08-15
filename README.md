@@ -10,6 +10,7 @@ This repository contains a collection of Python scripts for various administrati
 2. **Jira Audit Actions Listing:** Lists all the audit actions for a specific organization.
 3. **Jira Cloud Projects Exporter:** Exports all projects from your Jira Cloud instance into a CSV file.
 4. **Jira Service Management Changelog Exporter:** Fetches the changelogs of issues from a JIRA Service Management project that have been updated within the last 30 days and exports them to a CSV file.
+5. **User Access Removal Script:** This script reads a CSV containing Atlassian account IDs and uses the Atlassian API to remove those user's access from the specified organization.
 
 ## Requirements
 
