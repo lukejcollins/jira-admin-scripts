@@ -12,6 +12,7 @@ This repository contains a collection of Python scripts for various administrati
 4. **Jira Service Management Changelog Exporter:** Fetches the changelogs of issues from a JIRA Service Management project that have been updated within the last 30 days and exports them to a CSV file.
 5. **User Access Removal Script:** This script reads a CSV containing Atlassian account IDs and uses the Atlassian API to remove those user's access from the specified organization.
 6. **Jira Group User Removal Script:** This script reads a CSV file containing usernames and removes these users from a specified Jira group.
+7. **Jira Group User Export Script:** This script takes a Jira group name and exports all the users from that group to a CSV.
 
 ## Requirements
 
@@ -32,9 +33,11 @@ This repository contains a collection of Python scripts for various administrati
 
     - `ORG_ID`: The organization ID of your Atlassian organisation.
     - `ACCESS_TOKEN`: The API access token.
-    - `JIRA_DOMAIN`: Your Jira domain URL. For example, `https://your-domain.atlassian.net`.
-    - `JIRA_EMAIL`: The email address of your Jira account.
-    - `JIRA_TOKEN`: The API token for your Jira account.
+    - `JIRA_URL`: Your Jira domain URL. For example, `https://your-domain.atlassian.net`.
+    - `USER_EMAIL`: The email address of your Jira account.
+    - `API_TOKEN`: The API token for your Jira account.
+    - `REMOVAL_GROUP_NAME`: The name of the Jira group you wish to remove users from.
+    - `EXPORT_GROUP_NAME`: The name of the Jira group you wish to export users from.
 
 ## Usage
 

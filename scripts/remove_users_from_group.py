@@ -35,7 +35,7 @@ HEADERS = {
     "Accept": "application/json",
 }
 AUTH = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
-GROUP_NAME = os.environ.get("GROUP_NAME")
+REMOVAL_GROUP_NAME = os.environ.get("REMOVAL_GROUP_NAME")
 CSV_FILE = "users.csv"
 NUM_WORKERS = 10
 
@@ -84,10 +84,11 @@ def remove_user_from_group(account_id):
     Removes a user from a Jira group.
     """
     logging.debug(
-        "Trying to remove account %s from group %s", account_id, GROUP_NAME
+        "Trying to remove account %s from group %s", account_id,
+        REMOVAL_GROUP_NAME
     )
     endpoint = (
-        f"{JIRA_URL}/rest/api/3/group/user?groupname={GROUP_NAME}&"
+        f"{JIRA_URL}/rest/api/3/group/user?groupname={REMOVAL_GROUP_NAME}&"
         f"accountId={account_id}"
     )
     response = requests.delete(
@@ -97,13 +98,13 @@ def remove_user_from_group(account_id):
         logging.info(
             "Successfully removed user %s from group %s.",
             account_id,
-            GROUP_NAME,
+            REMOVAL_GROUP_NAME,
         )
     else:
         logging.error(
             "Failed to remove user %s from group %s. Response: %s, Status: %s",
             account_id,
-            GROUP_NAME,
+            REMOVAL_GROUP_NAME,
             response.text,
             response.status_code
         )
