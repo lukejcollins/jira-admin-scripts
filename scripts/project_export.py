@@ -13,17 +13,17 @@ if os.path.exists(env_path):
             os.environ[key] = value
 
 # Replace these with your actual Jira domain, email, and token
-JIRA_DOMAIN = os.environ.get("JIRA_DOMAIN")
-JIRA_EMAIL = os.environ.get("JIRA_EMAIL")
-JIRA_TOKEN = os.environ.get("JIRA_TOKEN")
+JIRA_URL = os.environ.get("JIRA_URL")
+USER_EMAIL = os.environ.get("USER_EMAIL")
+API_TOKEN = os.environ.get("API_TOKEN")
 
-auth = HTTPBasicAuth(JIRA_EMAIL, JIRA_TOKEN)
+auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
 
 headers = {"Accept": "application/json"}
 
 # Get all projects
 response = requests.get(
-    f"{JIRA_DOMAIN}/rest/api/3/project", headers=headers, auth=auth, timeout=30
+    f"{JIRA_URL}/rest/api/3/project", headers=headers, auth=auth, timeout=30
 )
 
 # Parse the response as JSON

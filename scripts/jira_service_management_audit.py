@@ -15,9 +15,9 @@ if os.path.exists(env_path):
             os.environ[key] = value
 
 # Jira details
-JIRA_DOMAIN = os.environ.get("JIRA_DOMAIN")
-JIRA_EMAIL = os.environ.get("JIRA_EMAIL")
-JIRA_TOKEN = os.environ.get("JIRA_TOKEN")
+JIRA_URL = os.environ.get("JIRA_URL")
+USER_EMAIL = os.environ.get("USER_EMAIL")
+API_TOKEN = os.environ.get("API_TOKEN")
 
 # Define JQL query
 JQL_QUERY = "projectType = service_desk and updated >= -30d"
@@ -26,7 +26,7 @@ JQL_QUERY = "projectType = service_desk and updated >= -30d"
 headers = {"Accept": "application/json"}
 
 # Authenticate with JIRA API
-auth = HTTPBasicAuth(JIRA_EMAIL, JIRA_TOKEN)
+auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
 
 MAX_THREADS = 10
 MAX_RESULTS = 50
@@ -37,11 +37,11 @@ def get_issue_keys(start_at):
     try:
         response = requests.request(
             "GET",
-            f"{JIRA_DOMAIN}/rest/api/3/search?jql={JQL_QUERY}"
+            f"{JIRA_URL}/rest/api/3/search?jql={JQL_QUERY}"
             f"&startAt={start_at * MAX_RESULTS}&maxResults={MAX_RESULTS}",
             headers=headers,
             auth=auth,
-            timeout=30,
+            timeout=120,
         )
         response.raise_for_status()
         data = response.json()
@@ -60,10 +60,10 @@ def get_total_issues():
     try:
         response = requests.request(
             "GET",
-            f"{JIRA_DOMAIN}/rest/api/3/search?jql={JQL_QUERY}&maxResults=1",
+            f"{JIRA_URL}/rest/api/3/search?jql={JQL_QUERY}&maxResults=1",
             headers=headers,
             auth=auth,
-            timeout=30,
+            timeout=120,
         )
         response.raise_for_status()
         return response.json()["total"]
@@ -78,10 +78,10 @@ def get_issue_changelog(issue_key):
     try:
         issue_response = requests.request(
             "GET",
-            f"{JIRA_DOMAIN}/rest/api/3/issue/{issue_key}?expand=changelog",
+            f"{JIRA_URL}/rest/api/3/issue/{issue_key}?expand=changelog",
             headers=headers,
             auth=auth,
-            timeout=30,
+            timeout=120,
         )
         issue_response.raise_for_status()
 
