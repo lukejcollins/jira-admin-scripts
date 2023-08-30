@@ -19,21 +19,21 @@ def load_env_vars(env_path):
 load_env_vars(os.path.join(os.path.dirname(__file__), ".env"))
 
 ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
-ORG_ID = os.environ.get("ORG_ID")
 
 
-def remove_user_access(org_id, account_id, access_token):
+def remove_user_access(account_id, access_token):
     """
     Removes a user's access using the Atlassian API.
     """
     url = (
-        f"https://api.atlassian.com/admin/v1/orgs/{org_id}/directory/"
-        f"users/{account_id}"
+        f"https://api.atlassian.com/users/{account_id}/manage/lifecycle/"
+        f"delete"
     )
 
-    headers = {"Authorization": f"Bearer {access_token}"}
+    headers = {"Authorization": f"Bearer {access_token}",
+               "Content-Type": "application/json"}
 
-    response = requests.delete(url, headers=headers, timeout=30)
+    response = requests.post(url, headers=headers, timeout=30)
 
     return response.status_code, response.text
 
@@ -48,7 +48,7 @@ def main():
         for row in reader:
             account_id = row["atlassian account id"]
             status_code, response_text = remove_user_access(
-                ORG_ID, account_id, ACCESS_TOKEN
+                account_id, ACCESS_TOKEN
             )
 
             # Print the status and response for each request
