@@ -6,13 +6,15 @@ This repository contains a collection of Python scripts for various administrati
 
 ## Scripts
 
-1. **Jira Audit Log Exporter:** Fetches audit logs for the last 30 days from an Atlassian organisation and exports them into a CSV file.
-2. **Jira Audit Actions Listing:** Lists all the audit actions for a specific organization.
-3. **Jira Cloud Projects Exporter:** Exports all projects from your Jira Cloud instance into a CSV file.
-4. **Jira Service Management Changelog Exporter:** Fetches the changelogs of issues from a JIRA Service Management project that have been updated within the last 30 days and exports them to a CSV file.
-5. **User Access Removal Script:** This script reads a CSV containing Atlassian account IDs and uses the Atlassian API to remove those user's access from the specified organization.
-6. **Jira Group User Removal Script:** This script reads a CSV file containing usernames and removes these users from a specified Jira group.
-7. **Jira Group User Export Script:** This script takes a Jira group name and exports all the users from that group to a CSV.
+1. ```jira_edit_audit.py```: Fetches audit logs for the last 30 days from an Atlassian organisation and exports them into a CSV file.
+2. ```jira_action_audit_list.py```: Lists all the audit actions for a specific organization.
+3. ```project_export.py```: Exports all projects from your Jira Cloud instance into a CSV file.
+4. ```jira_service_management_audit.py```: Fetches the changelogs of issues from a JIRA Service Management project that have been updated within the last 30 days and exports them to a CSV file.
+5. ```atlassian_access_deactivate.py```: This script reads a CSV containing Atlassian account IDs and uses the Atlassian API to remove those user's access from the specified organization.
+6. ```remove_users_from_group.py```: This script reads a CSV file containing usernames and removes these users from a specified Jira group.
+7. ```export_users_from_group.py```: This script takes a Jira group name and exports all the users from that group to a CSV.
+8. ```atlassian_deactivate.py```: This script reads a CSV containing Atlassian account IDs and uses the Atlassian API to deactivate those users from the Atlassian directory.
+9. ```force_sla_reconstruction.py```: This script reads a CSV containing Jira issue IDs and uses the Jira API to force SLA re-construction on those issues.
 
 ## Requirements
 
