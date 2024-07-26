@@ -1,8 +1,9 @@
 """
 This module exports managed accounts data from the Atlassian API to a CSV file.
-It includes functions to fetch data from the API, process accounts, and write the data to a CSV
-file.
+It includes functions to fetch data from the API, process accounts, and write
+the data to a CSV file.
 """
+
 import csv
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -32,24 +33,27 @@ JIRA_URL_WITHOUT_HTTPS = os.environ.get("JIRA_URL_WITHOUT_HTTPS")
 OUTPUT_FILE = 'managed_accounts.csv'
 MAX_WORKERS = 5
 
+
 # Rate limit decorator
 @sleep_and_retry
 @limits(calls=500, period=300)  # 500 calls per 300 seconds (5 minutes)
 def make_request(
     url: str, headers: Dict[str, str], params: Dict[str, str] = None
 ) -> Dict[str, Any]:
-    """Make a GET request to the given URL with the provided headers and parameters."""
+    """Make a GET request to the given URL with the provided headers and
+    parameters."""
     response = requests.get(url, headers=headers, params=params, timeout=10)
     response.raise_for_status()
     return response.json()
+
 
 def writer_worker(output_file: str, queue: Queue) -> None:
     """Worker function to write rows to a CSV file."""
     with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
         fieldnames = [
             'account_id', 'account_type', 'account_status', 'name', 'email',
-            'access_billable', 'last_active', 'product_access_key', 'product_access_name',
-            'product_url', 'product_access_last_active'
+            'access_billable', 'last_active', 'product_access_key',
+            'product_access_name', 'product_url', 'product_access_last_active'
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -60,6 +64,7 @@ def writer_worker(output_file: str, queue: Queue) -> None:
                 break
             writer.writerow(row)
             queue.task_done()
+
 
 def process_account(account, queue, seen_combinations, jira_url_without_https):
     """Process an individual account and add valid rows to the queue."""
@@ -92,12 +97,11 @@ def process_account(account, queue, seen_combinations, jira_url_without_https):
             'product_access_key': unidecode(product.get('key', '')),
             'product_access_name': unidecode(product.get('name', '')),
             'product_url': product_url,
-            'product_access_last_active': unidecode(
-                product.get('last_active', '')
-            )
+            'product_access_last_active': unidecode(product.get('last_active', ''))
         }
 
         add_row_to_queue(queue, row)
+
 
 def add_row_to_queue(queue, row):
     """Add a row to the queue, handling duplicates and comparing dates."""
@@ -106,12 +110,14 @@ def add_row_to_queue(queue, row):
          and r['product_access_key'] == row['product_access_key']), None
     )
     if existing_row:
-        if row['product_access_last_active'] and existing_row['product_access_last_active']:
+        if row['product_access_last_active'] and \
+                existing_row['product_access_last_active']:
             row_date = datetime.strptime(
                 row['product_access_last_active'], '%Y-%m-%dT%H:%M:%S.%fZ'
             )
             existing_date = datetime.strptime(
-                existing_row['product_access_last_active'], '%Y-%m-%dT%H:%M:%S.%fZ'
+                existing_row['product_access_last_active'],
+                '%Y-%m-%dT%H:%M:%S.%fZ'
             )
             if row_date > existing_date:
                 queue.queue.remove(existing_row)
@@ -123,6 +129,7 @@ def add_row_to_queue(queue, row):
     else:
         queue.put(row)
 
+
 def fetch_page_data(url, headers, cursor):
     """Fetch a page of data from the API."""
     params = {'cursor': cursor} if cursor else None
@@ -130,6 +137,7 @@ def fetch_page_data(url, headers, cursor):
     if not isinstance(response_data, dict):
         raise ValueError("Expected response_data to be a dictionary")
     return response_data
+
 
 def process_response_data(
     response_data, executor, queue, seen_combinations, jira_url_without_https
@@ -145,6 +153,7 @@ def process_response_data(
         )
     return futures
 
+
 def update_cursor(response_data):
     """Update the cursor for pagination."""
     if 'next' not in response_data['links']:
@@ -152,6 +161,7 @@ def update_cursor(response_data):
     next_url = response_data['links']['next']
     parsed_url = urlparse(next_url)
     return parse_qs(parsed_url.query)['cursor'][0]
+
 
 def get_managed_accounts(
     org_id: str, access_token: str, output_file: str, max_workers: int = 5
@@ -181,7 +191,8 @@ def get_managed_accounts(
                 break
 
             futures = process_response_data(
-                response_data, executor, queue, seen_combinations, JIRA_URL_WITHOUT_HTTPS
+                response_data, executor, queue, seen_combinations,
+                JIRA_URL_WITHOUT_HTTPS
             )
 
             # Wait for all the processing tasks to complete
@@ -200,5 +211,6 @@ def get_managed_accounts(
     writer_thread.join()
 
     print(f"Data exported to {output_file} successfully.")
+
 
 get_managed_accounts(ORG_ID, ACCESS_TOKEN, OUTPUT_FILE, MAX_WORKERS)
