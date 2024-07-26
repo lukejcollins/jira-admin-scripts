@@ -34,7 +34,9 @@ MAX_WORKERS = 5
 # Rate limit decorator
 @sleep_and_retry
 @limits(calls=500, period=300)  # 500 calls per 300 seconds (5 minutes)
-def make_request(url: str, headers: Dict[str, str], params: Dict[str, str] = None) -> Dict[str, Any]:
+def make_request(
+    url: str, headers: Dict[str, str], params: Dict[str, str] = None
+) -> Dict[str, Any]:
     """Make a GET request to the given URL with the provided headers and parameters."""
     response = requests.get(url, headers=headers, params=params, timeout=10)
     response.raise_for_status()
@@ -134,12 +136,11 @@ def get_managed_accounts(
     writer_thread = threading.Thread(target=writer_worker, args=(output_file, queue))
     writer_thread.start()
 
-    has_more = True
     cursor = None
     page_count = 1
     seen_combinations = set()  # Track seen account_id and product_access_key combinations
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        while has_more:
+        while True:
             print(f"Fetching page {page_count}...")
             params = {'cursor': cursor} if cursor else None
             future = executor.submit(make_request, url, headers, params)
@@ -162,14 +163,14 @@ def get_managed_accounts(
             for future in as_completed(futures):
                 future.result()
 
-            has_more = 'next' in response_data['links']
-            if has_more:
-                next_url = response_data['links']['next']
-                parsed_url = urlparse(next_url)
-                cursor = parse_qs(parsed_url.query)['cursor'][0]
-                page_count += 1
-            else:
+            if 'next' not in response_data['links']:
                 print("Reached the end of the pages.")
+                break
+
+            next_url = response_data['links']['next']
+            parsed_url = urlparse(next_url)
+            cursor = parse_qs(parsed_url.query)['cursor'][0]
+            page_count += 1
 
     # Signal the writer thread to stop
     queue.put(None)
