@@ -97,7 +97,9 @@ def process_account(account, queue, seen_combinations, jira_url_without_https):
             'product_access_key': unidecode(product.get('key', '')),
             'product_access_name': unidecode(product.get('name', '')),
             'product_url': product_url,
-            'product_access_last_active': unidecode(product.get('last_active', ''))
+            'product_access_last_active': unidecode(
+                product.get('last_active', '')
+            )
         }
 
         add_row_to_queue(queue, row)
@@ -174,12 +176,14 @@ def get_managed_accounts(
     }
 
     queue = Queue()
-    writer_thread = threading.Thread(target=writer_worker, args=(output_file, queue))
+    writer_thread = threading.Thread(target=writer_worker,
+                                     args=(output_file, queue))
     writer_thread.start()
 
     cursor = None
     page_count = 1
-    seen_combinations = set()  # Track seen account_id and product_access_key combinations
+    # Track seen account_id and product_access_key combinations
+    seen_combinations = set()  
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         while True:
