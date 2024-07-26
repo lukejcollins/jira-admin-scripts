@@ -1,7 +1,11 @@
+"""
+This module exports managed accounts data from the Atlassian API to a CSV file.
+It includes functions to fetch data from the API, process accounts, and write the data to a CSV file.
+"""
 import csv
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, Any, cast
+from typing import Dict, Any
 from urllib.parse import urlparse, parse_qs
 from queue import Queue
 import threading
@@ -11,10 +15,6 @@ import random
 import requests
 from ratelimit import limits, sleep_and_retry
 from unidecode import unidecode
-
-"""
-Module for exporting managed accounts data from Atlassian API to CSV.
-"""
 
 # Check if the .env var exists and load the environment variables
 env_path = os.path.join(os.path.dirname(__file__), ".", ".env")
@@ -130,7 +130,9 @@ def fetch_page_data(url, headers, cursor):
         raise ValueError("Expected response_data to be a dictionary")
     return response_data
 
-def process_response_data(response_data, executor, queue, seen_combinations, jira_url_without_https):
+def process_response_data(
+    response_data, executor, queue, seen_combinations, jira_url_without_https
+):
     """Process the response data and submit tasks to the executor."""
     futures = []
     for account in response_data['data']:
