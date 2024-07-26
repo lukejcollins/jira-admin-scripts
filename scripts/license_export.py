@@ -122,6 +122,34 @@ def add_row_to_queue(queue, row):
     else:
         queue.put(row)
 
+def fetch_page_data(url, headers, cursor):
+    """Fetch a page of data from the API."""
+    params = {'cursor': cursor} if cursor else None
+    response_data = make_request(url, headers, params)
+    if not isinstance(response_data, dict):
+        raise ValueError("Expected response_data to be a dictionary")
+    return response_data
+
+def process_response_data(response_data, executor, queue, seen_combinations, jira_url_without_https):
+    """Process the response data and submit tasks to the executor."""
+    futures = []
+    for account in response_data['data']:
+        futures.append(
+            executor.submit(
+                process_account, account, queue, seen_combinations,
+                jira_url_without_https
+            )
+        )
+    return futures
+
+def update_cursor(response_data):
+    """Update the cursor for pagination."""
+    if 'next' not in response_data['links']:
+        return None
+    next_url = response_data['links']['next']
+    parsed_url = urlparse(next_url)
+    return parse_qs(parsed_url.query)['cursor'][0]
+
 def get_managed_accounts(
     org_id: str, access_token: str, output_file: str, max_workers: int = 5
 ) -> None:
@@ -139,37 +167,29 @@ def get_managed_accounts(
     cursor = None
     page_count = 1
     seen_combinations = set()  # Track seen account_id and product_access_key combinations
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         while True:
             print(f"Fetching page {page_count}...")
-            params = {'cursor': cursor} if cursor else None
-            future = executor.submit(make_request, url, headers, params)
-            response_data = cast(Dict[str, Any], future.result())
+            response_data = fetch_page_data(url, headers, cursor)
 
             if 'data' not in response_data:
                 print("No more data found. Exiting.")
                 break
 
-            futures = []
-            for account in response_data['data']:
-                futures.append(
-                    executor.submit(
-                        process_account, account, queue, seen_combinations,
-                        JIRA_URL_WITHOUT_HTTPS
-                    )
-                )
+            futures = process_response_data(
+                response_data, executor, queue, seen_combinations, JIRA_URL_WITHOUT_HTTPS
+            )
 
             # Wait for all the processing tasks to complete
             for future in as_completed(futures):
                 future.result()
 
-            if 'next' not in response_data['links']:
+            cursor = update_cursor(response_data)
+            if cursor is None:
                 print("Reached the end of the pages.")
                 break
 
-            next_url = response_data['links']['next']
-            parsed_url = urlparse(next_url)
-            cursor = parse_qs(parsed_url.query)['cursor'][0]
             page_count += 1
 
     # Signal the writer thread to stop
