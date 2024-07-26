@@ -1,6 +1,7 @@
 """
 This module exports managed accounts data from the Atlassian API to a CSV file.
-It includes functions to fetch data from the API, process accounts, and write the data to a CSV file.
+It includes functions to fetch data from the API, process accounts, and write the data to a CSV
+file.
 """
 import csv
 import os
