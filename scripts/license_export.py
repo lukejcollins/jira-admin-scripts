@@ -1,15 +1,16 @@
-import requests
 import csv
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from ratelimit import limits, sleep_and_retry
 from typing import Dict, Any, cast
 from urllib.parse import urlparse, parse_qs
-from unidecode import unidecode
 from queue import Queue
 import threading
 from datetime import datetime
 import random
+
+import requests
+from ratelimit import limits, sleep_and_retry
+from unidecode import unidecode
 
 # Check if the .env var exists and load the environment variables
 env_path = os.path.join(os.path.dirname(__file__), ".", ".env")
@@ -18,24 +19,26 @@ if os.path.exists(env_path):
         for line in file:
             key, value = line.strip().split("=", 1)
             os.environ[key] = value    
-    
+
 # Usage example
-org_id = os.environ.get("ORG_ID")
-access_token = os.environ.get("ACCESS_TOKEN")
-jira_url_without_https = os.environ.get("JIRA_URL_WITHOUT_HTTPS")
-output_file = 'managed_accounts.csv'
-max_workers = 5
+ORG_ID = os.environ.get("ORG_ID")
+ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
+JIRA_URL_WITHOUT_HTTPS = os.environ.get("JIRA_URL_WITHOUT_HTTPS")
+OUTPUT_FILE = 'managed_accounts.csv'
+MAX_WORKERS = 5
 
 # Rate limit decorator
 @sleep_and_retry
 @limits(calls=500, period=300)  # 500 calls per 300 seconds (5 minutes)
-def make_request(url: str, headers: Dict[str, str], params: Dict[str, str] | None = None) -> Dict[str, Any]:
-    response = requests.get(url, headers=headers, params=params)
+def make_request(url: str, headers: Dict[str, str], params: Dict[str, str] = None) -> Dict[str, Any]:
+    """Make a GET request to the given URL with the provided headers and parameters."""
+    response = requests.get(url, headers=headers, params=params, timeout=10)
     response.raise_for_status()
     return response.json()
 
-def writer_worker(output_file, queue):
-    with open(output_file, 'w', newline='') as csvfile:
+def writer_worker(output_file: str, queue: Queue) -> None:
+    """Worker function to write rows to a CSV file."""
+    with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
         fieldnames = [
             'account_id', 'account_type', 'account_status', 'name', 'email',
             'access_billable', 'last_active', 'product_access_key', 'product_access_name',
@@ -52,6 +55,7 @@ def writer_worker(output_file, queue):
             queue.task_done()
 
 def get_managed_accounts(org_id: str, access_token: str, output_file: str, max_workers: int = 5) -> None:
+    """Fetch managed accounts from Atlassian API and write to a CSV file."""
     url = f"https://api.atlassian.com/admin/v1/orgs/{org_id}/users"
     headers = {
         "Accept": "application/json",
@@ -84,7 +88,7 @@ def get_managed_accounts(org_id: str, access_token: str, output_file: str, max_w
                     for product in account['product_access']:
                         print(f"Processing product: {product}")  # Print the product being processed
                         product_url = unidecode(product.get('url', ''))
-                        if product_url != jira_url_without_https:
+                        if product_url != JIRA_URL_WITHOUT_HTTPS:
                             print(f"Skipping product URL: {product_url}")
                             continue
                         
@@ -148,4 +152,4 @@ def get_managed_accounts(org_id: str, access_token: str, output_file: str, max_w
 
     print(f"Data exported to {output_file} successfully.")
 
-get_managed_accounts(org_id, access_token, output_file, max_workers)
+get_managed_accounts(ORG_ID, ACCESS_TOKEN, OUTPUT_FILE, MAX_WORKERS)
