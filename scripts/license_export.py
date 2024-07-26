@@ -12,13 +12,17 @@ import requests
 from ratelimit import limits, sleep_and_retry
 from unidecode import unidecode
 
+"""
+Module for exporting managed accounts data from Atlassian API to CSV.
+"""
+
 # Check if the .env var exists and load the environment variables
 env_path = os.path.join(os.path.dirname(__file__), ".", ".env")
 if os.path.exists(env_path):
     with open(env_path, encoding="utf-8") as file:
         for line in file:
             key, value = line.strip().split("=", 1)
-            os.environ[key] = value    
+            os.environ[key] = value
 
 # Usage example
 ORG_ID = os.environ.get("ORG_ID")
@@ -54,7 +58,71 @@ def writer_worker(output_file: str, queue: Queue) -> None:
             writer.writerow(row)
             queue.task_done()
 
-def get_managed_accounts(org_id: str, access_token: str, output_file: str, max_workers: int = 5) -> None:
+def process_account(account, queue, seen_combinations, jira_url_without_https):
+    """Process an individual account and add valid rows to the queue."""
+    if account.get('account_status') != 'active':
+        print(f"Skipping inactive account: {account}")
+        return
+
+    print(f"Processing active account: {account}")
+    for product in account['product_access']:
+        print(f"Processing product: {product}")
+        product_url = unidecode(product.get('url', ''))
+        if product_url != jira_url_without_https:
+            print(f"Skipping product URL: {product_url}")
+            continue
+
+        combination = (account['account_id'], product['key'])
+        if combination in seen_combinations:
+            print(f"Skipping duplicate combination: {combination}")
+            continue
+        seen_combinations.add(combination)
+
+        row = {
+            'account_id': unidecode(account.get('account_id', '')),
+            'account_type': unidecode(account.get('account_type', '')),
+            'account_status': unidecode(account.get('account_status', '')),
+            'name': unidecode(account.get('name', '')),
+            'email': unidecode(account.get('email', '')),
+            'access_billable': account.get('access_billable', ''),
+            'last_active': unidecode(account.get('last_active', '')),
+            'product_access_key': unidecode(product.get('key', '')),
+            'product_access_name': unidecode(product.get('name', '')),
+            'product_url': product_url,
+            'product_access_last_active': unidecode(
+                product.get('last_active', '')
+            )
+        }
+
+        add_row_to_queue(queue, row)
+
+def add_row_to_queue(queue, row):
+    """Add a row to the queue, handling duplicates and comparing dates."""
+    existing_row = next(
+        (r for r in queue.queue if r['account_id'] == row['account_id']
+         and r['product_access_key'] == row['product_access_key']), None
+    )
+    if existing_row:
+        if row['product_access_last_active'] and existing_row['product_access_last_active']:
+            row_date = datetime.strptime(
+                row['product_access_last_active'], '%Y-%m-%dT%H:%M:%S.%fZ'
+            )
+            existing_date = datetime.strptime(
+                existing_row['product_access_last_active'], '%Y-%m-%dT%H:%M:%S.%fZ'
+            )
+            if row_date > existing_date:
+                queue.queue.remove(existing_row)
+                queue.put(row)
+        else:
+            if random.random() < 0.5:
+                queue.queue.remove(existing_row)
+                queue.put(row)
+    else:
+        queue.put(row)
+
+def get_managed_accounts(
+    org_id: str, access_token: str, output_file: str, max_workers: int = 5
+) -> None:
     """Fetch managed accounts from Atlassian API and write to a CSV file."""
     url = f"https://api.atlassian.com/admin/v1/orgs/{org_id}/users"
     headers = {
@@ -83,57 +151,14 @@ def get_managed_accounts(org_id: str, access_token: str, output_file: str, max_w
 
             futures = []
             for account in response_data['data']:
-                if account.get('account_status') == 'active':
-                    print(f"Processing active account: {account}")  # Print the active account being processed
-                    for product in account['product_access']:
-                        print(f"Processing product: {product}")  # Print the product being processed
-                        product_url = unidecode(product.get('url', ''))
-                        if product_url != JIRA_URL_WITHOUT_HTTPS:
-                            print(f"Skipping product URL: {product_url}")
-                            continue
-                        
-                        combination = (account['account_id'], product['key'])
-                        if combination in seen_combinations:
-                            print(f"Skipping duplicate combination: {combination}")
-                            continue
-                        seen_combinations.add(combination)
+                futures.append(
+                    executor.submit(
+                        process_account, account, queue, seen_combinations,
+                        JIRA_URL_WITHOUT_HTTPS
+                    )
+                )
 
-                        row = {
-                            'account_id': unidecode(account.get('account_id', '')),
-                            'account_type': unidecode(account.get('account_type', '')),
-                            'account_status': unidecode(account.get('account_status', '')),
-                            'name': unidecode(account.get('name', '')),
-                            'email': unidecode(account.get('email', '')),
-                            'access_billable': account.get('access_billable', ''),
-                            'last_active': unidecode(account.get('last_active', '')),
-                            'product_access_key': unidecode(product.get('key', '')),
-                            'product_access_name': unidecode(product.get('name', '')),
-                            'product_url': product_url,
-                            'product_access_last_active': unidecode(product.get('last_active', ''))
-                        }
-
-                        # Check if a row with the same account_id and product_access_key already exists
-                        existing_row = next((r for r in queue.queue if r['account_id'] == row['account_id'] and r['product_access_key'] == row['product_access_key']), None)
-                        if existing_row:
-                            # Compare the product_access_last_active dates
-                            if row['product_access_last_active'] and existing_row['product_access_last_active']:
-                                row_date = datetime.strptime(row['product_access_last_active'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                                existing_date = datetime.strptime(existing_row['product_access_last_active'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                                if row_date > existing_date:
-                                    # Replace the existing row with the current row
-                                    queue.queue.remove(existing_row)
-                                    queue.put(row)
-                            else:
-                                # If either date is missing, randomly keep one of the rows
-                                if random.random() < 0.5:
-                                    queue.queue.remove(existing_row)
-                                    queue.put(row)
-                        else:
-                            queue.put(row)
-                else:
-                    print(f"Skipping inactive account: {account}")  # Print the inactive account being skipped
-
-            # Wait for all the writing tasks to complete
+            # Wait for all the processing tasks to complete
             for future in as_completed(futures):
                 future.result()
 
