@@ -69,6 +69,7 @@ auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
 CONTENT_TYPE = 'application/json'
 MAX_WORKERS = 50
 
+
 def post_issue_key(issue_key: str) -> None:
     """
     Sends a POST request for a single issue key.
@@ -85,6 +86,7 @@ def post_issue_key(issue_key: str) -> None:
         print(f'Request failed for issue key {issue_key} with status code:',
               response.status_code, 'and reason:', response.text)
     print(f'Response for issue key {issue_key}:', response.text)
+
 
 def read_issue_keys_from_csv(file_path: str) -> List[str]:
     """
@@ -104,6 +106,7 @@ def read_issue_keys_from_csv(file_path: str) -> List[str]:
         for row in reader:
             issue_keys.append(row['issue_key'])
     return issue_keys
+
 
 # Main logic
 if __name__ == '__main__':
