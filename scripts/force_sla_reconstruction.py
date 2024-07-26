@@ -79,7 +79,8 @@ def post_issue_key(issue_key: str) -> None:
     """
     headers = {'Content-Type': CONTENT_TYPE}
     payload = [issue_key]
-    response = requests.post(url, json=payload, headers=headers, auth=auth, timeout=30)
+    response = requests.post(url, json=payload, headers=headers, auth=auth,
+                             timeout=30)
     if response.ok:
         print(f'Request successful for issue key {issue_key}:', response.text)
     else:
