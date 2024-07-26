@@ -15,6 +15,7 @@ This repository contains a collection of Python scripts for various administrati
 7. ```export_users_from_group.py```: This script takes a Jira group name and exports all the users from that group to a CSV.
 8. ```atlassian_deactivate.py```: This script reads a CSV containing Atlassian account IDs and uses the Atlassian API to deactivate those users from the Atlassian directory.
 9. ```force_sla_reconstruction.py```: This script reads a CSV containing Jira issue IDs and uses the Jira API to force SLA re-construction on those issues.
+10. ```license_export.py```: This script exports all licenses from a Jira instance into a CSV file.
 
 ## Requirements
 

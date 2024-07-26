@@ -41,6 +41,7 @@ import csv
 import os
 import requests
 from requests.auth import HTTPBasicAuth
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Check if the .env var exists and load the environment variables
 env_path = os.path.join(os.path.dirname(__file__), ".", ".env")
@@ -57,34 +58,29 @@ API_TOKEN = os.environ.get("API_TOKEN")
 
 # Constants
 CSV_FILE_PATH = 'issues.csv'
-url = f'{JIRA_URL}/rest/servicedesk/1/servicedesk/sla/admin/' \
-     f'task/destructive/reconstruct?force=true'
+url = f'{JIRA_URL}/rest/servicedesk/1/servicedesk/sla/admin/task/destructive/reconstruct?force=true'
 auth = HTTPBasicAuth(USER_EMAIL, API_TOKEN)
 CONTENT_TYPE = 'application/json'
+MAX_WORKERS = 50
 
-
-def post_issue_keys(issue_keys):
+def post_issue_key(issue_key):
     """
-    Reads issue keys from a CSV file.
+    Sends a POST request for a single issue key.
 
     Args:
-       file_path (str): Path to the CSV file containing issue keys.
-
-    Returns:
-       list: A list of issue keys extracted from the CSV file.
+       issue_key (str): The issue key to be included in the payload.
     """
     headers = {
-       'Content-Type': CONTENT_TYPE,
+        'Content-Type': CONTENT_TYPE,
     }
-    payload = issue_keys
-    response = requests.post(url, json=payload, headers=headers, auth=auth,
-                             timeout=30)
+    payload = [issue_key]
+    response = requests.post(url, json=payload, headers=headers, auth=auth, timeout=30)
     if response.ok:
-        print('Request successful:', response.text)
+        print(f'Request successful for issue key {issue_key}:', response.text)
     else:
-        print('Request failed with status code:', response.status_code,
-              'and reason:', response.text)
-
+        print(f'Request failed for issue key {issue_key} with status code:', response.status_code, 'and reason:', response.text)
+    # Print the response text regardless of success or failure
+    print(f'Response for issue key {issue_key}:', response.text)
 
 def read_issue_keys_from_csv(file_path):
     """
@@ -94,9 +90,7 @@ def read_issue_keys_from_csv(file_path):
         file_path (str): Path to the CSV file containing issue keys.
 
     Returns:
-        list: A list of issue keys extracted from the CSV file. The list will
-              be empty if the CSV file is empty or contains no 'issue_key'
-              column.
+        list: A list of issue keys extracted from the CSV file. The list will be empty if the CSV file is empty or contains no 'issue_key' column.
     """
     issue_keys = []
     with open(file_path, mode='r', encoding='utf-8') as csvfile:
@@ -105,11 +99,16 @@ def read_issue_keys_from_csv(file_path):
             issue_keys.append(row['issue_key'])
     return issue_keys
 
-
 # Main logic
 if __name__ == '__main__':
     issue_keys_from_file = read_issue_keys_from_csv(CSV_FILE_PATH)
     if issue_keys_from_file:
-        post_issue_keys(issue_keys_from_file)
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = [executor.submit(post_issue_key, issue_key) for issue_key in issue_keys_from_file]
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as exc:
+                    print(f'Generated an exception: {exc}')
     else:
         print('No issue keys found in the CSV.')
