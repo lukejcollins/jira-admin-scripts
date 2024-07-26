@@ -183,7 +183,7 @@ def get_managed_accounts(
     cursor = None
     page_count = 1
     # Track seen account_id and product_access_key combinations
-    seen_combinations = set()  
+    seen_combinations = set()
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         while True:
