@@ -7,7 +7,7 @@ the data to a CSV file.
 import csv
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, Any
+from typing import Dict, Any, Set, Tuple, Optional
 from urllib.parse import urlparse, parse_qs
 from queue import Queue
 import threading
@@ -15,7 +15,7 @@ from datetime import datetime
 import random
 
 import requests
-from ratelimit import limits, sleep_and_retry
+from ratelimit import limits, sleep_and_retry  # type: ignore
 from unidecode import unidecode
 
 # Check if the .env var exists and load the environment variables
@@ -38,7 +38,7 @@ MAX_WORKERS = 5
 @sleep_and_retry
 @limits(calls=500, period=300)  # 500 calls per 300 seconds (5 minutes)
 def make_request(
-    url: str, headers: Dict[str, str], params: Dict[str, str] = None
+    url: str, headers: Dict[str, str], params: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     """Make a GET request to the given URL with the provided headers and
     parameters."""
@@ -169,13 +169,18 @@ def get_managed_accounts(
     org_id: str, access_token: str, output_file: str, max_workers: int = 5
 ) -> None:
     """Fetch managed accounts from Atlassian API and write to a CSV file."""
+    if not org_id or not access_token or not output_file:
+        raise ValueError(
+            "org_id, access_token, output_file must be provided and not None."
+        )
+
     url = f"https://api.atlassian.com/admin/v1/orgs/{org_id}/users"
     headers = {
         "Accept": "application/json",
         "Authorization": f"Bearer {access_token}"
     }
 
-    queue = Queue()
+    queue: Queue = Queue()
     writer_thread = threading.Thread(target=writer_worker,
                                      args=(output_file, queue))
     writer_thread.start()
@@ -183,7 +188,7 @@ def get_managed_accounts(
     cursor = None
     page_count = 1
     # Track seen account_id and product_access_key combinations
-    seen_combinations = set()
+    seen_combinations: Set[Tuple[str, str]] = set()
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         while True:
@@ -217,4 +222,7 @@ def get_managed_accounts(
     print(f"Data exported to {output_file} successfully.")
 
 
-get_managed_accounts(ORG_ID, ACCESS_TOKEN, OUTPUT_FILE, MAX_WORKERS)
+if ORG_ID and ACCESS_TOKEN and OUTPUT_FILE:
+    get_managed_accounts(ORG_ID, ACCESS_TOKEN, OUTPUT_FILE, MAX_WORKERS)
+else:
+    print("Please provide valid ORG_ID, ACCESS_TOKEN, and OUTPUT_FILE.")

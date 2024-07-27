@@ -1,3 +1,4 @@
 .env
 *.csv
 *.tmp
+.mypy_cache
