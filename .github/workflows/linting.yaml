@@ -27,6 +27,11 @@ jobs:
         echo "[MESSAGES CONTROL]" > .pylintrc
         echo "disable=duplicate-code" >> .pylintrc
 
+    - name: Create .flake8 file
+      run: |
+        echo "[flake8]" > .flake8
+        echo "max-line-length = 88" >> .flake8
+
     - name: Run pylint
       run: |
         pylint **/*.py
